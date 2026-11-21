@@ -678,7 +678,7 @@ export class StellarService {
       '--network-passphrase',
       this.networkPassphrase,
     ]);
-    const contractId = deploy.stdout.trim().split('\n').pop()!.trim();
+    const contractId = extractContractId(deploy.stdout);
     this.logger.log(`deployed market contract ${contractId}`);
 
     // The freshly deployed contract isn't always visible to the RPC node
@@ -829,7 +829,7 @@ export class StellarService {
       '--network-passphrase',
       this.networkPassphrase,
     ]);
-    const contractId = deploy.stdout.trim().split('\n').pop()!.trim();
+    const contractId = extractContractId(deploy.stdout);
     this.logger.log(`deployed perpetual contract ${contractId}`);
 
     await sleep(DEPLOY_TO_INIT_DELAY_MS);

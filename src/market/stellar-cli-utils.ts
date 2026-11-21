@@ -1,4 +1,5 @@
 import { StrKey } from '@stellar/stellar-sdk';
+import { hermesPriceToCents } from './pyth-price';
 
 /** Matches a Stellar StrKey secret seed (`S` + 55 base32 chars). */
 const STRKEY_SECRET = /S[A-Z2-7]{55}/g;
@@ -45,4 +46,21 @@ export function extractContractId(stdout: string): string {
     throw new Error(`stellar contract deploy printed no valid contract id; stdout: ${JSON.stringify(redactSecrets(stdout))}`);
   }
   return ids[ids.length - 1];
+}
+
+/**
+ * Converts a Reflector `lastprice` result plus `decimals` into cents.
+ * Throws on a missing price or non-integer decimals, so a bad read fails
+ * loudly instead of mispricing a strike by orders of magnitude.
+ */
+export function parseReflectorPrice(
+  priceData: { price: string | bigint | number } | null | undefined,
+  decimals: unknown,
+  asset: string,
+): bigint {
+  if (!priceData) throw new Error(`Reflector returned no price for asset ${asset}`);
+  const d = Number(decimals);
+  if (!Number.isInteger(d) || d < 0) throw new Error(`Reflector returned invalid decimals: ${String(decimals)}`);
+  // Reflector's price is price * 10^-decimals, i.e. expo = -decimals.
+  return hermesPriceToCents(priceData.price.toString(), -d);
 }

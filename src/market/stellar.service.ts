@@ -8,7 +8,7 @@ import { marketSpec, perpetualSpec, factorySpec, vaultSpec, mockRedstoneSpec } f
 import { hermesPriceToCents } from './pyth-price';
 import type { OnChainMarket } from './market.types';
 import type { OnChainPerpetual } from './perpetual.types';
-import { redactSecrets, sanitizeCliError, extractContractId } from './stellar-cli-utils';
+import { redactSecrets, sanitizeCliError, extractContractId, parseReflectorPrice } from './stellar-cli-utils';
 
 const execFileAsync = promisify(execFile);
 
@@ -800,12 +800,7 @@ export class StellarService {
       this.withRpcRetry(() => client.lastprice({ asset: { tag: 'Other', values: [asset] } })),
       this.withRpcRetry(() => client.decimals()),
     ]);
-    const priceData = priceTx.result;
-    if (!priceData) throw new Error(`Reflector returned no price for asset ${asset}`);
-    const decimals = Number(decimalsTx.result);
-    // Same {price, expo} shape hermesPriceToCents already converts —
-    // Reflector's price is priceData.price * 10^-decimals, i.e. expo = -decimals.
-    return hermesPriceToCents(priceData.price.toString(), -decimals);
+    return parseReflectorPrice(priceTx.result, decimalsTx.result, asset);
   }
 
   /**
